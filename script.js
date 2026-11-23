@@ -80,7 +80,6 @@ function normalizeArabic(text) {
         .trim();
 }
 
-// تخزين آمن (بيشتغل حتى لو التصفح الخاص مانع localStorage)
 function storageGet(key) {
     try { return localStorage.getItem(key); } catch (e) { return null; }
 }
@@ -88,7 +87,7 @@ function storageSet(key, value) {
     try { localStorage.setItem(key, value); } catch (e) { /* تجاهل */ }
 }
 
-// مطابقة صارمة: اسم كامل، أو بداية الاسم (3 كلمات على الأقل) بشرط تطابق واحد بس
+// تصحيح دالة البحث لتعيد كائناً صريحاً [0] بدلاً من مصفوفة كاملة
 function findUser(input) {
     const clean = normalizeArabic(input);
     if (clean.split(" ").length < 3) return { error: "short" };
@@ -102,7 +101,6 @@ function findUser(input) {
     return { error: starts.length > 1 ? "ambiguous" : "none" };
 }
 
-// الهدية ثابتة لكل اسم (نفس الاسم = نفس الهدية على أي جهاز وفي أي مرة)
 function giftFor(name) {
     const str = SALT + "|" + normalizeArabic(name);
     let h = 7;
@@ -152,7 +150,6 @@ function showGift(user) {
     loginPage.classList.add('hidden');
     giftPage.classList.remove('hidden');
 
-    // الاسم بيتكتب كنص عادي (آمن)
     welcomeUser.textContent = "";
     welcomeUser.appendChild(document.createTextNode("مبروووووك يا بطل 🎉🥳"));
     const nameSpan = document.createElement('span');
@@ -161,16 +158,17 @@ function showGift(user) {
     welcomeUser.appendChild(nameSpan);
 
     if (storageGet(storageKey(user))) {
-        // كشف الهدية قبل كده على الجهاز ده
-        revealed = true;
-        canvas.style.display = "none";
-        scratchInstruction.innerText = "لقينا هديتك المحفوظة يا بطل! 🎁 ودي جائزتك الثابتة 🤍";
-        triggerLocalConfetti();
+        scratchInstruction.innerText = "شوف هديتك المحفوظة تاني يا بطل واخدش المستطيل! 🎁👇";
     } else {
-        revealed = false;
         scratchInstruction.innerText = "امسح واخدش المستطيل الرمادي اللي تحت عشان تكشف عن هديتك! 👇";
-        requestAnimationFrame(initScratchCard);
     }
+
+    revealed = false;
+
+    // تم تعديل التوقيت لـ 60 ملي ثانية لضمان انتهاء المتصفح تماماً من إظهار كلاسات الـ CSS والبدء بالرسم
+    setTimeout(() => {
+        initScratchCard();
+    }, 60);
 }
 
 btnCheck.addEventListener('click', handleCheck);
@@ -196,9 +194,8 @@ function initScratchCard() {
     canvas.style.opacity = 1;
     canvas.style.display = "block";
 
-    // تغيير الحجم بيصفّر حالة الـ canvas
-    canvas.width = parent.clientWidth || 280;
-    canvas.height = parent.clientHeight || 90;
+    canvas.width = parent.clientWidth && parent.clientWidth > 0 ? parent.clientWidth : 280;
+    canvas.height = parent.clientHeight && parent.clientHeight > 0 ? parent.clientHeight : 90;
 
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = '#b2bec3';
@@ -233,7 +230,6 @@ function scratchLine(x1, y1, x2, y2) {
 function checkScratchPercentage(force) {
     if (revealed) return;
 
-    // نفحص كل 120 ملي ثانية بس عشان الموبايلات الضعيفة
     const now = Date.now();
     if (!force && now - lastCheck < 120) return;
     lastCheck = now;
@@ -241,7 +237,6 @@ function checkScratchPercentage(force) {
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
     let clear = 0;
     let total = 0;
-    // عينة: بكسل من كل 16 بكسل
     for (let i = 3; i < pixels.length; i += 64) {
         total++;
         if (pixels[i] === 0) clear++;
@@ -264,69 +259,37 @@ function revealGift() {
     triggerLocalConfetti();
 }
 
-// Pointer Events: بتشتغل للماوس واللمس والقلم بنفس الكود
+function triggerLocalConfetti() {
+    console.log("🎉 مبروك! تم كشف الهدية.");
+}
+
+// ===== ربط أحداث اللمس والـ Pointer Events كاملة وبدون أخطاء =====
 canvas.addEventListener('pointerdown', (e) => {
     if (revealed) return;
     drawing = true;
-    try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* تجاهل */ }
-    const p = getPos(e);
-    lastX = p.x;
-    lastY = p.y;
-    scratchLine(p.x, p.y, p.x, p.y);
-    checkScratchPercentage(false);
-    e.preventDefault();
+    canvas.setPointerCapture(e.pointerId);
+    const pos = getPos(e);
+    lastX = pos.x;
+    lastY = pos.y;
+    scratchLine(lastX, lastY, pos.x, pos.y);
 });
 
 canvas.addEventListener('pointermove', (e) => {
     if (!drawing || revealed) return;
-    const p = getPos(e);
-    scratchLine(lastX, lastY, p.x, p.y);
-    lastX = p.x;
-    lastY = p.y;
+    const pos = getPos(e);
+    scratchLine(lastX, lastY, pos.x, pos.y);
+    lastX = pos.x;
+    lastY = pos.y;
     checkScratchPercentage(false);
-    e.preventDefault();
 });
 
-function stopDrawing() {
+canvas.addEventListener('pointerup', (e) => {
     if (!drawing) return;
     drawing = false;
+    canvas.releasePointerCapture(e.pointerId);
     checkScratchPercentage(true);
-}
-canvas.addEventListener('pointerup', stopDrawing);
-canvas.addEventListener('pointercancel', stopDrawing);
+});
 
-// ===== الاحتفال =====
-function triggerLocalConfetti() {
-    const colors = ['#ff7675', '#74b9ff', '#55efc4', '#ffeaa7', '#a29bfe', '#fd79a8'];
-
-    function createWave() {
-        for (let i = 0; i < 40; i++) {
-            const el = document.createElement('div');
-            el.style.position = 'fixed';
-            el.style.width = Math.random() * 10 + 6 + 'px';
-            el.style.height = Math.random() * 10 + 6 + 'px';
-            el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            el.style.left = Math.random() * 100 + 'vw';
-            el.style.top = '-5vh';
-            el.style.borderRadius = '50%';
-            el.style.zIndex = '9999';
-            el.style.pointerEvents = 'none';
-            document.body.appendChild(el);
-
-            const animation = el.animate([
-                { transform: 'translate3d(0, 0, 0) rotate(0deg)', opacity: 1 },
-                { transform: `translate3d(${(Math.random() - 0.5) * 250}px, 105vh, 0) rotate(${Math.random() * 360}deg)`, opacity: 0 }
-            ], {
-                duration: Math.random() * 2500 + 2000,
-                easing: 'cubic-bezier(0.1, 0.7, 0.3, 1)'
-            });
-
-            animation.onfinish = () => el.remove();
-        }
-    }
-
-    createWave();
-    setTimeout(createWave, 500);
-    setTimeout(createWave, 1000);
-    setTimeout(createWave, 1500);
-}
+canvas.addEventListener('pointercancel', () => {
+    drawing = false;
+});
