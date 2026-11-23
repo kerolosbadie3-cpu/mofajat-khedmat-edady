@@ -1,5 +1,4 @@
 // ===== الإعدادات =====
-// غيّر القيمة دي كل شهر (مثلاً "2026-12") عشان الهدايا تتغير والكل يخدش من جديد
 const SALT = "2026-11";
 
 // قاعدة بيانات الحاضرين بالاسم الرباعي
@@ -72,7 +71,7 @@ let lastCheck = 0;
 function normalizeArabic(text) {
     if (!text) return "";
     return text
-        .replace(/[\u064B-\u065F\u0640]/g, "") // التشكيل والتطويل
+        .replace(/[\u064B-\u065F\u0640]/g, "") 
         .replace(/[أإآ]/g, "ا")
         .replace(/ة/g, "ه")
         .replace(/ى/g, "ي")
@@ -84,10 +83,9 @@ function storageGet(key) {
     try { return localStorage.getItem(key); } catch (e) { return null; }
 }
 function storageSet(key, value) {
-    try { localStorage.setItem(key, value); } catch (e) { /* تجاهل */ }
+    try { localStorage.setItem(key, value); } catch (e) { }
 }
 
-// تصحيح دالة البحث لتعيد كائناً صريحاً [0] بدلاً من مصفوفة كاملة
 function findUser(input) {
     const clean = normalizeArabic(input);
     if (clean.split(" ").length < 3) return { error: "short" };
@@ -157,6 +155,7 @@ function showGift(user) {
     nameSpan.textContent = user.name;
     welcomeUser.appendChild(nameSpan);
 
+    // تعديل المنطق: لو دخل المرة الثانية نسمح له بالخدش التفاعلي مجدداً مع بقاء هديته المضمونة والثابتة
     if (storageGet(storageKey(user))) {
         scratchInstruction.innerText = "شوف هديتك المحفوظة تاني يا بطل واخدش المستطيل! 🎁👇";
     } else {
@@ -165,7 +164,6 @@ function showGift(user) {
 
     revealed = false;
 
-    // تم تعديل التوقيت لـ 60 ملي ثانية لضمان انتهاء المتصفح تماماً من إظهار كلاسات الـ CSS والبدء بالرسم
     setTimeout(() => {
         initScratchCard();
     }, 60);
@@ -187,15 +185,17 @@ btnLogout.addEventListener('click', () => {
     loginPage.classList.remove('hidden');
 });
 
-// ===== كارت الخدش =====
+// ===== كارت الخدش الصارم بأبعاد ثابتة صلبة =====
 function initScratchCard() {
-    const parent = canvas.parentElement;
     canvas.style.transition = "none";
     canvas.style.opacity = 1;
     canvas.style.display = "block";
 
-    canvas.width = parent.clientWidth && parent.clientWidth > 0 ? parent.clientWidth : 280;
-    canvas.height = parent.clientHeight && parent.clientHeight > 0 ? parent.clientHeight : 90;
+    // تثبيت المقاييس صراحة لمنع الـ CSS أو الـ Flexbox من تصفير الحجم
+    canvas.width = 280;
+    canvas.height = 90;
+    canvas.style.width = "280px";
+    canvas.style.height = "90px";
 
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = '#b2bec3';
@@ -260,10 +260,10 @@ function revealGift() {
 }
 
 function triggerLocalConfetti() {
-    console.log("🎉 مبروك! تم كشف الهدية.");
+    console.log("🎉 مبروك! تم كشف الهدية الثابتة.");
 }
 
-// ===== ربط أحداث اللمس والـ Pointer Events كاملة وبدون أخطاء =====
+// ===== أحداث الـ Pointer Events =====
 canvas.addEventListener('pointerdown', (e) => {
     if (revealed) return;
     drawing = true;
