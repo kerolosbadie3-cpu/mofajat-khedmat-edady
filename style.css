@@ -1,174 +1,236 @@
-* {
-    -webkit-tap-highlight-color: transparent;
-}
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>امسح واربح مع تساقط الورود</title>
+    <link href="https://googleapis.com" rel="stylesheet">
+    <style>
+        * { -webkit-tap-highlight-color: transparent; } 
+        body { 
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #74b9ff, #a29bfe); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            min-height: 100dvh; 
+            margin: 0; 
+            padding: 16px 0; 
+            box-sizing: border-box; 
+            overflow: hidden; /* لمنع ظهور شريط التمرير أثناء تساقط الورود */
+            position: relative;
+        } 
+        .container { width: 95%; max-width: 420px; z-index: 2; } 
+        .card { 
+            background: white; 
+            padding: 25px 20px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15); 
+            text-align: center; 
+            box-sizing: border-box; 
+            width: 100%; 
+        } 
+        h2 { color: #2d3436; margin-bottom: 10px; font-size: 22px; line-height: 1.5; } 
+        p { color: #636e72; font-size: 14px; line-height: 1.6; } 
+        .welcome-name { display: block; margin-top: 8px; font-size: 20px; color: #0984e3; } 
+        .bible-verse { 
+            background: linear-gradient(135deg, #fff9db, #fff3bf); 
+            padding: 15px; 
+            border-right: 5px solid #fdcb6e; 
+            border-left: 5px solid #fdcb6e; 
+            border-radius: 12px; 
+            margin: 20px 0; 
+            color: #2d3436 !important; 
+            font-weight: bold; 
+            font-size: 16px; 
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.05); 
+            line-height: 1.8; 
+            direction: rtl; 
+        } 
+        .bible-verse span { font-size: 13px; color: #e17055; display: block; margin-top: 6px; font-weight: normal; } 
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 10px 0; 
+            border: 2px solid #dfe6e9; 
+            border-radius: 10px; 
+            box-sizing: border-box; 
+            font-size: 16px; 
+            font-family: inherit; 
+            text-align: center; 
+        } 
+        input:focus { outline: none; border-color: #0984e3; } 
+        button { font-family: inherit; } 
+        button.pulse-btn { 
+            width: 100%; 
+            padding: 14px; 
+            background-color: #0984e3; 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            font-size: 18px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            transition: background-color 0.3s ease, box-shadow 0.3s ease; 
+            animation: pulseAnimation 2s infinite; 
+        } 
+        button.pulse-btn:hover { background-color: #00cec9; box-shadow: 0 5px 15px rgba(0, 206, 201, 0.4); } 
+        @keyframes pulseAnimation { 0% { transform: scale(1); } 50% { transform: scale(1.03); box-shadow: 0 0 15px rgba(9, 132, 227, 0.3); } 100% { transform: scale(1); } } 
+        .back-btn { width: auto; padding: 8px 20px; background-color: #f1f2f6; color: #57606f; border: 1px solid #ced6e0; border-radius: 20px; font-size: 14px; cursor: pointer; margin-top: 20px; font-weight: 600; transition: 0.2s; } 
+        .back-btn:hover { background-color: #dfe4ea; color: #2f3542; } 
+        .error { color: #d63031; font-weight: bold; margin-top: 15px; } 
+        .hidden { display: none !important; } 
+        
+        /* عناصر الخدش */
+        .scratch-container { position: relative; width: 100%; max-width: 280px; height: 90px; margin: 20px auto; user-select: none; -webkit-user-select: none; } 
+        .gift-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #ffeaa7; border: 2px dashed #fdcb6e; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 30px; font-weight: bold; color: #d63031; box-sizing: border-box; letter-spacing: 0; } 
+        #scratch-canvas { position: absolute; top: 0; left: 0; cursor: pointer; border-radius: 10px; touch-action: none; } 
+        
+        /* كانفاس الورود المتساقطة */
+        #flower-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* لتسمح بالضغط على العناصر خلفها */
+            z-index: 1;
+        }
 
-body {
-    font-family: 'Cairo', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #74b9ff, #a29bfe);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    min-height: 100dvh;
-    margin: 0;
-    padding: 16px 0;
-    box-sizing: border-box;
-}
+        @media (max-width: 360px) { .gift-text { font-size: 24px; } h2 { font-size: 20px; } }
+    </style>
+</head>
+<body>
 
-.container {
-    width: 95%;
-    max-width: 420px;
-}
+    <!-- كانفاس الورود المتساقطة خلف واجهة المستخدم وفوق الخلفية البنفسجية -->
+    <canvas id="flower-canvas"></canvas>
 
-.card {
-    background: white;
-    padding: 25px 20px;
-    border-radius: 20px;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-    text-align: center;
-    box-sizing: border-box;
-    width: 100%;
-}
+    <div class="container">
+        <div class="card">
+            <h2>امسح البطاقة لمعرفة هديتك! <span class="welcome-name">يا صديقي</span></h2>
+            
+            <div class="bible-verse">
+                "كُلُّ شَيْءٍ مُسْتَطَاعٌ لِلْمُؤْمِنِ."
+                <span>(مرقس 23:9)</span>
+            </div>
 
-h2 { color: #2d3436; margin-bottom: 10px; font-size: 22px; line-height: 1.5; }
-p { color: #636e72; font-size: 14px; line-height: 1.6; }
+            <!-- حاوية الخدش -->
+            <div class="scratch-container">
+                <div class="gift-text">🎁 آيفون 16!</div>
+                <canvas id="scratch-canvas" width="280" height="90"></canvas>
+            </div>
 
-.welcome-name {
-    display: block;
-    margin-top: 8px;
-    font-size: 20px;
-    color: #0984e3;
-}
+            <button class="pulse-btn">تأكيد الجائزة</button>
+            <br>
+            <button class="back-btn">رجوع</button>
+        </div>
+    </div>
 
-.bible-verse {
-    background: linear-gradient(135deg, #fff9db, #fff3bf);
-    padding: 15px;
-    border-right: 5px solid #fdcb6e;
-    border-left: 5px solid #fdcb6e;
-    border-radius: 12px;
-    margin: 20px 0;
-    color: #2d3436 !important;
-    font-weight: bold;
-    font-size: 16px;
-    box-shadow: inset 0 0 8px rgba(0,0,0,0.05);
-    line-height: 1.8;
-    direction: rtl; /* حل مشكلة الحروف والآية المقلوبة */
-}
+    <script>
+        // --- 1. إعدادات كارت الخدش (Scratch Card) ---
+        const canvas = document.getElementById('scratch-canvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let isRewardTriggered = false; // لمنع تكرار تأثير الورود
 
-.bible-verse span {
-    font-size: 13px;
-    color: #e17055;
-    display: block;
-    margin-top: 6px;
-    font-weight: normal;
-}
+        // ملء الكانفاس باللون الرمادي الذي سيتم خده
+        ctx.fillStyle = '#b2bec3';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // إضافة نص توضيحي فوق طبقة الحك
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px Cairo';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('احك هنا لرؤية المفاجأة ✨', canvas.width / 2, canvas.height / 2);
 
-input {
-    width: 100%;
-    padding: 12px;
-    margin: 10px 0;
-    border: 2px solid #dfe6e9;
-    border-radius: 10px;
-    box-sizing: border-box;
-    font-size: 16px;
-    font-family: inherit;
-    text-align: center;
-}
+        // وظيفة الحك
+        function scratch(e) {
+            if (!isDrawing) return;
+            
+            // تحديد موقع اللمس أو الفأرة بالنسبة للكانفاس
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
 
-input:focus {
-    outline: none;
-    border-color: #0984e3;
-}
+            ctx.globalCompositeOperation = 'destination-out'; // تجعل الرسم يمسح الخلفية
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2); // حجم أداة المسح
+            ctx.fill();
 
-button {
-    font-family: inherit;
-}
+            checkScratchPercentage();
+        }
 
-button.pulse-btn {
-    width: 100%;
-    padding: 14px;
-    background-color: #0984e3;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-size: 18px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    animation: pulseAnimation 2s infinite;
-}
+        // حساب نسبة المساحة الممسوحة
+        function checkScratchPercentage() {
+            if (isRewardTriggered) return;
 
-button.pulse-btn:hover {
-    background-color: #00cec9;
-    box-shadow: 0 5px 15px rgba(0, 206, 201, 0.4);
-}
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+            let clearPixels = 0;
 
-@keyframes pulseAnimation {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.03); box-shadow: 0 0 15px rgba(9, 132, 227, 0.3); }
-    100% { transform: scale(1); }
-}
+            // كود الكشف عن البكسلات الشفافة
+            for (let i = 3; i < pixels.length; i += 4) {
+                if (pixels[i] === 0) clearPixels++;
+            }
 
-.back-btn {
-    width: auto;
-    padding: 8px 20px;
-    background-color: #f1f2f6;
-    color: #57606f;
-    border: 1px solid #ced6e0;
-    border-radius: 20px;
-    font-size: 14px;
-    cursor: pointer;
-    margin-top: 20px;
-    font-weight: 600;
-    transition: 0.2s;
-}
-.back-btn:hover {
-    background-color: #dfe4ea;
-    color: #2f3542;
-}
+            const percentage = (clearPixels / (pixels.length / 4)) * 100;
 
-.error { color: #d63031; font-weight: bold; margin-top: 15px; }
-.hidden { display: none !important; }
+            // إذا مسح المستخدم أكثر من 40%، يتم إخفاء الطبقة المتبقية بالكامل وتشغيل الورود
+            if (percentage > 40) {
+                isRewardTriggered = true;
+                canvas.style.transition = 'opacity 0.5s ease';
+                canvas.style.opacity = '0';
+                setTimeout(() => canvas.classList.add('hidden'), 500);
+                
+                // تشغيل تأثير تساقط الورود
+                startFlowerRain();
+            }
+        }
 
-.scratch-container {
-    position: relative;
-    width: 100%;
-    max-width: 280px;
-    height: 90px;
-    margin: 20px auto;
-    user-select: none;
-    -webkit-user-select: none;
-}
+        // مستمعات الأحداث للفأرة واللمس
+        canvas.addEventListener('mousedown', () => isDrawing = true);
+        canvas.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mouseleave', () => isDrawing = false);
+        canvas.addEventListener('mousemove', scratch);
 
-.gift-text {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #ffeaa7;
-    border: 2px dashed #fdcb6e;
-    border-radius: 10px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 30px;
-    font-weight: bold;
-    color: #d63031;
-    box-sizing: border-box;
-    letter-spacing: 0;
-}
+        canvas.addEventListener('touchstart', () => isDrawing = true);
+        canvas.addEventListener('touchend', () => isDrawing = false);
+        canvas.addEventListener('touchmove', scratch);
 
-#scratch-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    cursor: pointer;
-    border-radius: 10px;
-    touch-action: none; /* تمنع تهنيج الصفحة أثناء سحب اللمس */
-}
 
-@media (max-width: 360px) {
-    .gift-text { font-size: 24px; }
-    h2 { font-size: 20px; }
-}
+        // --- 2. محرك تساقط الورود (Flower Rain System) ---
+        const flowerCanvas = document.getElementById('flower-canvas');
+        const fCtx = flowerCanvas.getContext('2d');
+        let flowers = [];
+        let animationFrameId;
+
+        // تعديل حجم الكانفاس ليناسب الشاشة بالكامل
+        function resizeFlowerCanvas() {
+            flowerCanvas.width = window.innerWidth;
+            flowerCanvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeFlowerCanvas);
+        resizeFlowerCanvas();
+
+        // مصفوفة تحتوي على ألوان الورد (درجات الوردي والأحمر والبنفسجي الفاتح)
+        const flowerColors = ['#ff758f', '#ff8fa3', '#ffb3c1', '#ffccd5', '#fff0f3', '#e17055'];
+
+        class Flower {
+            constructor() {
+                this.x = Math.random() * flowerCanvas.width;
+                this.y = Math.random() * -50 - 20; // تبدأ من فوق الشاشة
+                this.size = Math.random() * 8 + 6;  // حجم الورقة
+                this.color = flowerColors[Math.floor(Math.random() * flowerColors.length)];
+                this.speedX = Math.random() * 2 - 1; // حركة جانبية متأرجحة
+                this.speedY = Math.random() * 2 + 1.5; // سرعة الهبوط
+                this.rotation = Math.random() * 360;
+                this.rotationSpeed = Math.random() * 2 - 1;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.rotation += this.rotationSpeed;
+
